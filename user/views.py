@@ -5,8 +5,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
-from .models import UserForm, SellerDetailsForm, Category
-from .serializers import UserFormSerializer, SellerDetailsFormSerializer, CategorySerializer
+from .models import  SellerDetailsForm, Category
+from .serializers import  SellerDetailsFormSerializer, CategorySerializer
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -28,65 +28,7 @@ class CustomPagination(PageNumberPagination):
             }
         })
 
-# ==================== USER FORM APIs ====================
 
-class UserFormListCreateView(generics.ListCreateAPIView):
-    """
-    GET: List all users with pagination
-    POST: Create a new user
-    """
-    queryset = UserForm.objects.all().order_by('-created_at')
-    serializer_class = UserFormSerializer
-    pagination_class = CustomPagination
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response({
-            "code": 201,
-            "message": "User created successfully",
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
-
-class UserFormDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    GET: Retrieve user by UUID
-    PUT/PATCH: Update user
-    DELETE: Delete user
-    """
-    queryset = UserForm.objects.all()
-    serializer_class = UserFormSerializer
-    lookup_field = 'uuid'
-    
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response({
-            "code": 200,
-            "message": "Data fetched successfully",
-            "data": serializer.data
-        })
-    
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response({
-            "code": 200,
-            "message": "User updated successfully",
-            "data": serializer.data
-        })
-    
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response({
-            "code": 200,
-            "message": "User deleted successfully"
-        }, status=status.HTTP_200_OK)
 
 # ==================== SELLER DETAILS APIs ====================
 
@@ -216,78 +158,3 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
             "message": "Category deleted successfully"
         }, status=status.HTTP_200_OK)
 
-# ==================== CUSTOM VIEWS ====================
-
-@api_view(['GET'])
-def user_seller_details(request, user_uuid):
-    """
-    Get seller details for a specific user by UUID
-    """
-    try:
-        user = UserForm.objects.get(uuid=user_uuid)
-        seller_details = SellerDetailsForm.objects.filter(user=user)
-        serializer = SellerDetailsFormSerializer(seller_details, many=True)
-        return Response({
-            "code": 200,
-            "message": "User seller details fetched successfully",
-            "data": serializer.data
-        })
-    except UserForm.DoesNotExist:
-        return Response({
-            "code": 404,
-            "message": "User not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-
-@api_view(['GET'])
-def sellers_by_category(request, category_id):
-    """
-    Get all sellers for a specific category
-    """
-    try:
-        category = Category.objects.get(id=category_id)
-        sellers = SellerDetailsForm.objects.filter(categories=category)
-        serializer = SellerDetailsFormSerializer(sellers, many=True)
-        return Response({
-            "code": 200,
-            "message": f"Sellers for category '{category.name}' fetched successfully",
-            "data": serializer.data
-        })
-    except Category.DoesNotExist:
-        return Response({
-            "code": 404,
-            "message": "Category not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-
-
-
-# ==================== STATISTICS VIEWS ====================
-
-@api_view(['GET'])
-def dashboard_stats(request):
-    """
-    Get dashboard statistics
-    """
-    total_users = UserForm.objects.count()
-    total_sellers = SellerDetailsForm.objects.count()
-    total_categories = Category.objects.count()
-    
-    # Categories with seller count
-    categories_with_count = []
-    for category in Category.objects.all():
-        seller_count = category.sellers.count()
-        categories_with_count.append({
-            'id': category.id,
-            'name': category.name,
-            'seller_count': seller_count
-        })
-    
-    return Response({
-        "code": 200,
-        "message": "Dashboard statistics fetched successfully",
-        "data": {
-            "total_users": total_users,
-            "total_sellers": total_sellers,
-            "total_categories": total_categories,
-            "categories_with_count": categories_with_count
-        }
-    })

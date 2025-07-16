@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import UserForm, SellerDetailsForm, Category
+from .models import  SellerDetailsForm, Category
 
+from form.models import Form  # Consider renaming 'form' to 'Form' for clarity
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,10 +50,10 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
         # Convert UUID to user ID
         if 'user_uuid_input' in data:
             try:
-                user = UserForm.objects.get(uuid=data['user_uuid_input'])
+                user = Form.objects.get(uuid=data['user_uuid_input'])
                 data['user'] = user.id
                 del data['user_uuid_input']
-            except UserForm.DoesNotExist:
+            except Form.DoesNotExist:
                 raise serializers.ValidationError({'user_uuid_input': 'User not found'})
             except ValueError:
                 raise serializers.ValidationError({'user_uuid_input': 'Invalid UUID format'})
@@ -79,9 +80,3 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
         return instance
 
 
-class UserFormSerializer(serializers.ModelSerializer):
-    seller_details = SellerDetailsFormSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = UserForm
-        fields = '__all__'

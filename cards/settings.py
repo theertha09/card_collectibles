@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'rest_framework',
     'user',  # Assuming 'user' is the app name for user management
+    'form',
+    
 
 ]
 

@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-s!0!p7b$kkf9@^c2)+hzp7!_+_a@a%ionn_8x7_(&n_6wu3l)w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -39,11 +39,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'user',  # Assuming 'user' is the app name for user management
     'form',
-    
+    'corsheaders',
 
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -54,6 +55,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'cards.urls'
+CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {
@@ -102,6 +104,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "https://yourfrontend.com",
+    "http://localhost:3000",
+    "http://localhost:5173/",
+    
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

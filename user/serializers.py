@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import  SellerDetailsForm, Category
+from .models import SellerDetailsForm, Category
+from form.models import Form
 
-from form.models import Form  # Consider renaming 'form' to 'Form' for clarity
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,22 +14,22 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
 
     category_ids = serializers.ListField(
         child=serializers.IntegerField(),
-        write_only=True
+        write_only=True,
+        required=False
     )
 
-    # ✅ Show UUID in GET response (read-only)
-    user_uuid = serializers.SerializerMethodField()
+    # ✅ Accept UUID in POST/PUT
+    user_uuid = serializers.UUIDField(write_only=True)
 
-    # ✅ Accept UUID in POST/PUT (write-only)
-    user_uuid_input = serializers.UUIDField(write_only=True, required=False)
+    # ✅ Output UUID in GET
+    user_uuid_display = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = SellerDetailsForm
         fields = [
             'id',
-            'user',
-            'user_uuid',         # ✅ shown in GET
-            'user_uuid_input',   # ✅ accepted in POST
+            'user_uuid',           # write-only
+            'user_uuid_display',   # read-only
             'store_name',
             'categories',
             'category_ids',
@@ -38,37 +38,40 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         extra_kwargs = {
-            'user': {'write_only': True},
+            'user_uuid': {'write_only': True},
         }
 
-    def get_user_uuid(self, obj):
-        return str(obj.user.uuid) if obj.user and obj.user.uuid else None
+    def get_user_uuid_display(self, obj):
+        return str(obj.user.uuid) if obj.user else None
 
-    def to_internal_value(self, data):
-        data = data.copy() if hasattr(data, 'copy') else dict(data)
+    def validate_user_uuid(self, value):
+        try:
+            user = Form.objects.get(uuid=value)
+            return user
+        except Form.DoesNotExist:
+            raise serializers.ValidationError("User with this UUID does not exist.")
 
-        # Convert UUID to user ID
-        if 'user_uuid_input' in data:
-            try:
-                user = Form.objects.get(uuid=data['user_uuid_input'])
-                data['user'] = user.id
-                del data['user_uuid_input']
-            except Form.DoesNotExist:
-                raise serializers.ValidationError({'user_uuid_input': 'User not found'})
-            except ValueError:
-                raise serializers.ValidationError({'user_uuid_input': 'Invalid UUID format'})
-
-        return super().to_internal_value(data)
+    def validate_inventory_estimate(self, value):
+        allowed_choices = dict(SellerDetailsForm.INVENTORY_CHOICES).keys()
+        if value not in allowed_choices:
+            raise serializers.ValidationError(f"'{value}' is not a valid choice.")
+        return value
 
     def create(self, validated_data):
         category_ids = validated_data.pop('category_ids', [])
-        seller_details = SellerDetailsForm.objects.create(**validated_data)
+        user = validated_data.pop('user_uuid')
+        validated_data['user'] = user
+
+        seller = SellerDetailsForm.objects.create(**validated_data)
         if category_ids:
-            seller_details.categories.set(Category.objects.filter(id__in=category_ids))
-        return seller_details
+            seller.categories.set(Category.objects.filter(id__in=category_ids))
+        return seller
 
     def update(self, instance, validated_data):
         category_ids = validated_data.pop('category_ids', None)
+        user = validated_data.pop('user_uuid', None)
+        if user:
+            instance.user = user
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -78,5 +81,3 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
             instance.categories.set(Category.objects.filter(id__in=category_ids))
 
         return instance
-
-

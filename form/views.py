@@ -8,6 +8,7 @@ from django.http import Http404
 from django.db import models
 from .models import Form, Address
 from .serializers import FormSerializer, AddressSerializer
+from rest_framework.views import APIView
 
 
 # ✅ Enhanced Custom Pagination Class
@@ -57,6 +58,11 @@ class FormRegisterView(generics.CreateAPIView):
             "message": "User registered successfully",
             "data": serializer.data
         }, status=status.HTTP_201_CREATED)
+    
+
+
+
+    
 
 # ✅ User List View with Pagination
 class FormListView(generics.ListAPIView):
@@ -741,3 +747,27 @@ class UserAddressListView(generics.ListAPIView):
                 "total_addresses": queryset.count()
             }
         })
+    
+
+
+
+class UserDetailByUUIDView(APIView):
+    """
+    Get user details using user_uuid.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, user_uuid):
+        try:
+            user = Form.objects.get(uuid=user_uuid)
+            serializer = FormSerializer(user)
+            return Response({
+                "code": 200,
+                "message": "User fetched successfully",
+                "data": serializer.data
+            })
+        except Form.DoesNotExist:
+            return Response({
+                "code": 404,
+                "message": "User not found"
+            }, status=status.HTTP_404_NOT_FOUND)

@@ -8,6 +8,9 @@ from django.utils import timezone
 from datetime import datetime
 from django.conf import settings
 import re
+import qrcode
+from io import BytesIO
+from django.core.files.base import ContentFile
 
 
 # Function to generate a unique link token
@@ -54,7 +57,8 @@ class Form(models.Model):
     last_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
-    
+    qr_code_image = models.ImageField(upload_to='qr_codes/', null=True, blank=True)
+
     gender = models.CharField(
         max_length=10,
         choices=[('Male', 'Male'), ('Female', 'Female')],
@@ -129,6 +133,27 @@ class Form(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.email}) - {self.referral_code}"
 
+    def save(self, *args, **kwargs):
+        # Generate referral code if not exists
+        if not self.referral_code:
+            self.referral_code = generate_referral_code(self.full_name)
+
+        super().save(*args, **kwargs)  # Save first so referral_code exists
+
+        # ✅ Generate QR Code if not exists
+        if self.referral_code and not self.qr_code_image:
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(self.get_referral_link())
+            qr.make(fit=True)
+
+            img = qr.make_image(fill='black', back_color='white')
+
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            file_name = f"{self.referral_code}_qr.png"
+
+            self.qr_code_image.save(file_name, ContentFile(buffer.getvalue()), save=False)
+            super().save(update_fields=['qr_code_image'])  # Save QR image only
 
 class Address(models.Model):
     user = models.ForeignKey(Form, on_delete=models.CASCADE, related_name='addresses')

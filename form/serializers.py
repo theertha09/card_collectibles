@@ -4,17 +4,19 @@ from .models import Form, Address
 
 class FormSerializer(serializers.ModelSerializer):
     reenter_password = serializers.CharField(write_only=True, required=True)
-    referral_code = serializers.CharField(read_only=True)  # Auto-generated
+    referral_code = serializers.CharField(read_only=True)
     referred_by_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    unique_link = serializers.SerializerMethodField()  # Read-only computed field
-    referral_link = serializers.SerializerMethodField()  # Read-only computed field
+    unique_link = serializers.SerializerMethodField()
+    referral_link = serializers.SerializerMethodField()
+    qr_code_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Form
         fields = [
             'uuid', 'full_name', 'last_name', 'email', 'phone_number',
             'gender', 'password', 'reenter_password', 'referral_code', 'referred_by_code',
-            'unique_link', 'referral_link', 'unique_link_token', 'link_click_count', 'is_link_active'
+            'unique_link', 'referral_link', 'qr_code_url',
+            'unique_link_token', 'link_click_count', 'is_link_active',
         ]
         extra_kwargs = {
             'password': {'write_only': True},
@@ -28,6 +30,14 @@ class FormSerializer(serializers.ModelSerializer):
     def get_referral_link(self, obj):
         return obj.get_referral_link()
 
+    def get_qr_code_url(self, obj):
+        if obj.qr_code_image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.qr_code_image.url)
+            return obj.qr_code_image.url
+        return None
+
     def validate(self, data):
         if data['password'] != data['reenter_password']:
             raise serializers.ValidationError("Passwords do not match.")
@@ -40,7 +50,6 @@ class FormSerializer(serializers.ModelSerializer):
 
         user = Form(**validated_data)
 
-        # Handle referral
         if referred_by_code:
             try:
                 referrer = Form.objects.get(referral_code=referred_by_code)

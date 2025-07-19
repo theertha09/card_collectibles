@@ -107,6 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 CORS_ALLOWED_ORIGINS = [
     "https://yourfrontend.com",
     "http://localhost:3000",
+    "http://localhost:5173",
     
 ]
 

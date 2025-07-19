@@ -20,10 +20,9 @@ class SellerDetailsForm(models.Model):
 
     categories = models.ManyToManyField(Category, related_name='sellers') 
     INVENTORY_CHOICES = [
-        ('Low', 'Low'),
-        ('Medium', 'Medium'),
-        ('High', 'High'),
-        ('Quantity', 'Quantity'),
+    ('<1000', '<1000 items'),
+    ('1000-5000', '1000–5000 items'),
+    ('5000+', '5000+ items'),
     ]
     inventory_estimate = models.CharField(max_length=50, choices=INVENTORY_CHOICES)
 

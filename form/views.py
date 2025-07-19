@@ -226,20 +226,24 @@ def user_referral_dashboard(request, user_uuid):
         total_referrals = user.referrals.count()
         recent_referrals = user.referrals.filter(created_at__gte=thirty_days_ago).count()
         
+        referral_code = user.referral_code
+        qr_code_url = f"http://127.0.0.1:8000/media/qr_codes/{referral_code}_qr.png"
+        
         dashboard_data = {
             "uuid": user.uuid,
             "full_name": user.full_name,
             "email": user.email,
-            "referral_code": user.referral_code,
+            "referral_code": referral_code,
             "unique_link": user.get_unique_link(),
             "referral_link": user.get_referral_link(),
+            "qr_code_url": qr_code_url,
             "total_referrals": total_referrals,
             "recent_referrals": recent_referrals,
             "recent_referral_details": recent_referral_details,
             "showing_recent": len(recent_referral_details),
             "pagination_info": {
                 "has_more": total_referrals > 5,
-                "total_pages": (total_referrals + 9) // 10,  # Calculate total pages with page_size=10
+                "total_pages": (total_referrals + 9) // 10,
                 "paginated_list_endpoint": f"/api/users/{user_uuid}/referrals/"
             }
         }

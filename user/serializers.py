@@ -57,14 +57,27 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"'{value}' is not a valid choice.")
         return value
 
+    def validate_category_ids(self, value):
+        """Validate that all category IDs exist"""
+        if value:
+            existing_categories = Category.objects.filter(id__in=value)
+            if len(existing_categories) != len(value):
+                raise serializers.ValidationError("One or more category IDs do not exist.")
+        return value
+
     def create(self, validated_data):
         category_ids = validated_data.pop('category_ids', [])
         user = validated_data.pop('user_uuid')
         validated_data['user'] = user
 
+        # Create the seller instance first
         seller = SellerDetailsForm.objects.create(**validated_data)
+        
+        # Now set the many-to-many relationships after the instance is saved
         if category_ids:
-            seller.categories.set(Category.objects.filter(id__in=category_ids))
+            categories = Category.objects.filter(id__in=category_ids)
+            seller.categories.set(categories)
+        
         return seller
 
     def update(self, instance, validated_data):
@@ -78,6 +91,7 @@ class SellerDetailsFormSerializer(serializers.ModelSerializer):
         instance.save()
 
         if category_ids is not None:
-            instance.categories.set(Category.objects.filter(id__in=category_ids))
+            categories = Category.objects.filter(id__in=category_ids)
+            instance.categories.set(categories)
 
         return instance

@@ -39,10 +39,18 @@ class FormSerializer(serializers.ModelSerializer):
         return None
 
     def validate(self, data):
-        if data['password'] != data['reenter_password']:
-            raise serializers.ValidationError("Passwords do not match.")
+        if self.instance is None:
+            # On create, check password match
+            if not data.get('password') or not data.get('reenter_password'):
+                raise serializers.ValidationError("Both password and reenter_password are required.")
+            if data.get('password') != data.get('reenter_password'):
+                raise serializers.ValidationError("Passwords do not match.")
+        elif 'password' in data or 'reenter_password' in data:
+            # On update, if password is being updated, validate match
+            if data.get('password') != data.get('reenter_password'):
+                raise serializers.ValidationError("Passwords do not match.")
+            
         return data
-
     def create(self, validated_data):
         referred_by_code = validated_data.pop('referred_by_code', None)
         validated_data.pop('reenter_password')

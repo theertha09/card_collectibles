@@ -54,9 +54,9 @@ def generate_referral_code(full_name):
 class Form(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     full_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255, null=True, blank=True)
+    last_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=15, unique=True)
     qr_code_image = models.ImageField(upload_to='qr_codes/', null=True, blank=True)
 
     gender = models.CharField(
@@ -66,7 +66,7 @@ class Form(models.Model):
         blank=True
     )
     
-    password = models.CharField(max_length=255, null=True, blank=True)
+    password = models.CharField(max_length=255)
     
     # ✅ Referral system fields
     referral_code = models.CharField(max_length=10, unique=True, null=True, blank=True)

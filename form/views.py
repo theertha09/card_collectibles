@@ -753,21 +753,61 @@ class UserAddressListView(generics.ListAPIView):
 
 class UserDetailByUUIDView(APIView):
     """
-    Get user details using user_uuid.
+    Retrieve, update (full or partial) a user using user_uuid.
+    Supports: GET, PUT, PATCH
     """
     permission_classes = [AllowAny]
 
-    def get(self, request, user_uuid):
+    def get_object(self, user_uuid):
         try:
-            user = Form.objects.get(uuid=user_uuid)
+            return Form.objects.get(uuid=user_uuid)
+        except Form.DoesNotExist:
+            return None
+
+    def get(self, request, user_uuid):
+        user = self.get_object(user_uuid)
+        if user:
             serializer = FormSerializer(user)
             return Response({
                 "code": 200,
                 "message": "User fetched successfully",
                 "data": serializer.data
             })
-        except Form.DoesNotExist:
-            return Response({
-                "code": 404,
-                "message": "User not found"
-            }, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            "code": 404,
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, user_uuid):
+        user = self.get_object(user_uuid)
+        if user:
+            serializer = FormSerializer(user, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "code": 200,
+                    "message": "User updated successfully",
+                    "data": serializer.data
+                })
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "code": 404,
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request, user_uuid):
+        user = self.get_object(user_uuid)
+        if user:
+            serializer = FormSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "code": 200,
+                    "message": "User partially updated successfully",
+                    "data": serializer.data
+                })
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "code": 404,
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)

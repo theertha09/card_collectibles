@@ -7,7 +7,7 @@ urlpatterns = [
     path('users/', views.FormListView.as_view(), name='form-list'),
     path('addresses/', views.AddressListCreateView.as_view(), name='address-list-create'),
     path('addresses/<int:pk>/', views.AddressDetailView.as_view(), name='address-detail'),
-    path('user/<uuid:user_uuid>/', views.UserDetailByUUIDView.as_view(), name='user-detail'),  # GET
+    path('user/<uuid:user_uuid>/', views.UserDetailByUUIDView.as_view(), name='user-detail-by-uuid'),
 
     # Unique Links
     path('user/<str:token>/', views.user_by_unique_link, name='user-by-unique-link'),

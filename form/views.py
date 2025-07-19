@@ -811,3 +811,35 @@ class UserDetailByUUIDView(APIView):
             "code": 404,
             "message": "User not found"
         }, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+class UserAddressDetailView(APIView):
+    """
+    GET /address/<user_uuid>/ - Retrieve both user and their address details
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, user_uuid):
+        try:
+            user = Form.objects.get(uuid=user_uuid)
+            addresses = Address.objects.filter(user=user).order_by('-id')
+
+            user_serializer = FormSerializer(user)
+            address_serializer = AddressSerializer(addresses, many=True)
+
+            return Response({
+                "code": 200,
+                "message": "User and address details fetched successfully",
+                "data": {
+                    "user": user_serializer.data,
+                    "addresses": address_serializer.data
+                }
+            })
+
+        except Form.DoesNotExist:
+            return Response({
+                "code": 404,
+                "message": "User not found"
+            }, status=status.HTTP_404_NOT_FOUND)

@@ -7,13 +7,13 @@ urlpatterns = [
     path('users/', views.FormListView.as_view(), name='form-list'),
     path('addresses/', views.AddressListCreateView.as_view(), name='address-list-create'),
     path('addresses/<int:pk>/', views.AddressDetailView.as_view(), name='address-detail'),
-    path('user/<uuid:user_uuid>/', views.UserDetailByUUIDView.as_view(), name='user-detail-by-uuid'),
+    # path('user/<uuid:user_uuid>/', views.UserDetailByUUIDView.as_view(), name='user-detail'),  # GET
+    path('user/<uuid:user_uuid>/', views.UserFullDetailView.as_view(), name='user-summary'),
 
     # Unique Links
     path('user/<str:token>/', views.user_by_unique_link, name='user-by-unique-link'),
     path('regenerate-link/<uuid:user_uuid>/', views.regenerate_unique_link, name='regenerate-unique-link'),
     path('refer/<str:referral_code>/', views.referral_registration, name='referral-registration'),
-    path('address/<uuid:user_uuid>/',views. UserAddressDetailView.as_view(), name='user-address-detail'),
 
     # Referral Dashboard
     path('dashboard/<uuid:user_uuid>/', views.user_referral_dashboard, name='user-referral-dashboard'),

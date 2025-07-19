@@ -755,90 +755,129 @@ class UserAddressListView(generics.ListAPIView):
 
 
 
-class UserDetailByUUIDView(APIView):
+# class UserDetailByUUIDView(APIView):
+#     """
+#     Retrieve, update (full or partial) a user using user_uuid.
+#     Supports: GET, PUT, PATCH
+#     """
+#     permission_classes = [AllowAny]
+
+#     def get_object(self, user_uuid):
+#         try:
+#             return Form.objects.get(uuid=user_uuid)
+#         except Form.DoesNotExist:
+#             return None
+
+#     def get(self, request, user_uuid):
+#         user = self.get_object(user_uuid)
+#         if user:
+#             serializer = FormSerializer(user)
+#             return Response({
+#                 "code": 200,
+#                 "message": "User fetched successfully",
+#                 "data": serializer.data
+#             })
+#         return Response({
+#             "code": 404,
+#             "message": "User not found"
+#         }, status=status.HTTP_404_NOT_FOUND)
+
+#     def put(self, request, user_uuid):
+#         user = self.get_object(user_uuid)
+#         if user:
+#             serializer = FormSerializer(user, data=request.data)
+#             if serializer.is_valid():
+#                 serializer.save()
+#                 return Response({
+#                     "code": 200,
+#                     "message": "User updated successfully",
+#                     "data": serializer.data
+#                 })
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response({
+#             "code": 404,
+#             "message": "User not found"
+#         }, status=status.HTTP_404_NOT_FOUND)
+
+#     def patch(self, request, user_uuid):
+#         user = self.get_object(user_uuid)
+#         if user:
+#             serializer = FormSerializer(user, data=request.data, partial=True)
+#             if serializer.is_valid():
+#                 serializer.save()
+#                 return Response({
+#                     "code": 200,
+#                     "message": "User partially updated successfully",
+#                     "data": serializer.data
+#                 })
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response({
+#             "code": 404,
+#             "message": "User not found"
+#         }, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+
+class UserFullDetailView(APIView):
     """
-    Retrieve, update (full or partial) a user using user_uuid.
-    Supports: GET, PUT, PATCH
-    """
-    permission_classes = [AllowAny]
-
-    def get_object(self, user_uuid):
-        try:
-            return Form.objects.get(uuid=user_uuid)
-        except Form.DoesNotExist:
-            return None
-
-    def get(self, request, user_uuid):
-        user = self.get_object(user_uuid)
-        if user:
-            serializer = FormSerializer(user)
-            return Response({
-                "code": 200,
-                "message": "User fetched successfully",
-                "data": serializer.data
-            })
-        return Response({
-            "code": 404,
-            "message": "User not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-
-    def put(self, request, user_uuid):
-        user = self.get_object(user_uuid)
-        if user:
-            serializer = FormSerializer(user, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({
-                    "code": 200,
-                    "message": "User updated successfully",
-                    "data": serializer.data
-                })
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({
-            "code": 404,
-            "message": "User not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-
-    def patch(self, request, user_uuid):
-        user = self.get_object(user_uuid)
-        if user:
-            serializer = FormSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({
-                    "code": 200,
-                    "message": "User partially updated successfully",
-                    "data": serializer.data
-                })
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({
-            "code": 404,
-            "message": "User not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-
-
-
-
-class UserAddressDetailView(APIView):
-    """
-    GET /address/<user_uuid>/ - Retrieve both user and their address details
+    Return full user details by UUID:
+    - Profile info
+    - Referral stats
+    - QR code
+    - Addresses
+    - Recent referred users
     """
     permission_classes = [AllowAny]
 
     def get(self, request, user_uuid):
         try:
             user = Form.objects.get(uuid=user_uuid)
+
+            # 🟢 Referral stats
+            total_referrals = user.referrals.count()
+            referral_code = user.referral_code
+            referral_link = user.get_referral_link()
+            unique_link = user.get_unique_link()
+            qr_code_url = f"http://127.0.0.1:8000/media/qr_codes/{referral_code}_qr.png"
+
+            # 🟢 Addresses
             addresses = Address.objects.filter(user=user).order_by('-id')
+            address_data = AddressSerializer(addresses, many=True).data
 
-            user_serializer = FormSerializer(user)
-            address_serializer = AddressSerializer(addresses, many=True)
+            # 🟢 Recent referrals (last 5)
+            recent_referrals = user.referrals.all().order_by('-created_at')[:5]
+            recent_referral_data = [{
+                "uuid": r.uuid,
+                "full_name": r.full_name,
+                "email": r.email,
+                "created_at": r.created_at,
+            } for r in recent_referrals]
 
+            # 🟢 Full response
             return Response({
                 "code": 200,
-                "message": "User and address details fetched successfully",
+                "message": "User full details fetched successfully",
                 "data": {
-                    "user": user_serializer.data,
-                    "addresses": address_serializer.data
+                    "uuid": str(user.uuid),
+                    "full_name": user.full_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                    "phone_number": user.phone_number,
+                    "gender": user.gender,
+                    "created_at": user.created_at,
+                    "referral": {
+                        "referral_code": referral_code,
+                        "referral_link": referral_link,
+                        "unique_link": unique_link,
+                        "qr_code_url": qr_code_url,
+                        "total_referrals": total_referrals,
+                        "recent_referrals": recent_referral_data
+                    },
+                    "addresses": address_data,
+                    "total_addresses": len(address_data)
                 }
             })
 

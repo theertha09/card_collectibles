@@ -7,6 +7,12 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from .models import  SellerDetailsForm, Category
 from .serializers import  SellerDetailsFormSerializer, CategorySerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from .models import SellerDetailsForm, Form
+from .serializers import SellerDetailsFormSerializer
+from rest_framework.response import Response
+from rest_framework import status
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -158,3 +164,25 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
             "message": "Category deleted successfully"
         }, status=status.HTTP_200_OK)
 
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def seller_details_by_user(request, user_uuid):
+    """
+    GET /seller/<user_uuid>/ - Fetch all seller entries for a user
+    """
+    try:
+        user = Form.objects.get(uuid=user_uuid)
+        sellers = SellerDetailsForm.objects.filter(user=user).order_by('-created_at')
+        serializer = SellerDetailsFormSerializer(sellers, many=True)
+        return Response({
+            "code": 200,
+            "message": "Seller details fetched successfully",
+            "data": serializer.data
+        })
+    except Form.DoesNotExist:
+        return Response({
+            "code": 404,
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
